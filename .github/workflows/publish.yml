@@ -121,21 +121,33 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           npm pack --dry-run
 
-      - name: Publish to npm
+      - name: Publish to npm (OIDC trusted publishing)
+        id: oidc_publish
+        continue-on-error: true
+        env:
+          DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
+        run: |
+          set -euo pipefail
+          # Must NOT pass NODE_AUTH_TOKEN — npm would use the token and require OTP
+          # even when --provenance is set. OIDC uses the Actions id-token instead.
+          unset NODE_AUTH_TOKEN || true
+          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
+            sed -i '/^\/\/registry\.npmjs\.org\/:_authToken=/d' "$NPM_CONFIG_USERCONFIG" || true
+          fi
+          npm publish --provenance --access public --tag "$DIST_TAG"
+
+      - name: Publish to npm (token fallback)
+        if: steps.oidc_publish.outcome == 'failure'
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
         run: |
           set -euo pipefail
-          # Prefer npm Trusted Publishing (OIDC) — no OTP. Falls back to NPM_TOKEN.
-          if npm publish --provenance --access public --tag "$DIST_TAG"; then
-            echo "Published with trusted publishing (provenance)."
-          elif [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            npm publish --access public --tag "$DIST_TAG"
-          else
-            echo "Configure npm Trusted Publishers for Maijied/Reportkit-UI or set NPM_TOKEN with 2FA bypass." >&2
+          if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
+            echo "::error::OIDC publish failed. Add npm Trusted Publisher for Maijied/Reportkit-UI (workflow publish.yml), or set NPM_TOKEN with 2FA bypass enabled." >&2
             exit 1
           fi
+          npm publish --access public --tag "$DIST_TAG"
 
       - uses: softprops/action-gh-release@v2
         with:
