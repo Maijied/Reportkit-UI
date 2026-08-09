@@ -1,0 +1,16 @@
+---
+description: ReportKit UI project identity and git scope
+alwaysApply: true
+---
+
+# @reportkit/ui — project identity
+
+Standalone OSS package. Canonical remote: `https://github.com/Maijied/Reportkit-UI.git`.
+
+## Author
+
+- Mohammad Maizied Hasan Majumder \<mdshuvo40@gmail.com\>
+- Founder & Principal Engineer, Lorapok Labs · Senior Software Engineer @ Shohoz Ltd
+
+Do not push this package to Shohoz bus remotes unless explicitly asked.
+No Cursor attribution trailers in commits.

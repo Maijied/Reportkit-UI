@@ -1,0 +1,53 @@
+/**
+ * Compatibility aliases for CAS / sales-* class names used by design-source hosts.
+ * Prefer rk-* in new markup. Load after reportkit.css.
+ */
+
+.sales-page-head {
+  background: var(--rk-surface);
+  border: 1px solid var(--rk-line);
+  border-top: 3px solid var(--rk-accent);
+  border-radius: var(--rk-radius);
+  padding: 16px 18px;
+  margin-bottom: 14px;
+  box-shadow: var(--rk-shadow);
+}
+
+.search-pan {
+  background: var(--rk-surface);
+  border: 1px solid var(--rk-line);
+  border-radius: var(--rk-radius);
+  padding: 14px 16px;
+  margin-bottom: 12px;
+}
+
+.cas-filter-summary {
+  background: var(--rk-surface);
+  border: 1px solid var(--rk-line);
+  border-radius: var(--rk-radius);
+  padding: 10px 14px;
+  margin-bottom: 12px;
+}
+
+.sales-kpi-card {
+  flex: 1 1 160px;
+  background: var(--rk-surface);
+  border: 1px solid var(--rk-line);
+  border-left: 4px solid #90a4ae;
+  border-radius: var(--rk-radius);
+  padding: 12px 14px;
+}
+
+.cas-table-scroll {
+  overflow-x: auto;
+}
+
+.sales-tables-loading {
+  position: absolute;
+  inset: 0;
+  background: rgba(244, 246, 247, 0.92);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 20;
+}
