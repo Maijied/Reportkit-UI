@@ -159,6 +159,24 @@
     };
 
     /**
+     * Optional trace inspector helper for demo / debug UIs.
+     * el: element or selector; trace: object from /trace or MergedRowSource::getTrace()
+     */
+    ReportKit.trace = {
+        render: function (el, trace) {
+            var node = typeof el === 'string' ? document.querySelector(el) : el;
+            if (!node) {
+                return;
+            }
+            try {
+                node.textContent = JSON.stringify(trace || {}, null, 2);
+            } catch (e) {
+                node.textContent = String(trace);
+            }
+        }
+    };
+
+    /**
      * Set KPI card values from a summary map { key: { value, hint, tone } }.
      */
     ReportKit.kpi = {

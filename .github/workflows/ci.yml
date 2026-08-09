@@ -1,0 +1,36 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  pack:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+      - name: Validate package
+        run: |
+          node -e "JSON.parse(require('fs').readFileSync('package.json','utf8'))"
+          test -f css/reportkit.css
+          test -f css/reportkit-compat.css
+          test -f js/reportkit.js
+          npm pack --dry-run
+      - name: Smoke ReportKit global
+        run: |
+          node <<'EOF'
+          const fs = require('fs');
+          const vm = require('vm');
+          const code = fs.readFileSync('js/reportkit.js', 'utf8');
+          const sandbox = { window: { jQuery: null }, console };
+          sandbox.window = sandbox;
+          vm.runInNewContext(code, sandbox);
+          if (!sandbox.ReportKit || !sandbox.ReportKit.table || !sandbox.ReportKit.asyncLoader) {
+            throw new Error('ReportKit surface missing');
+          }
+          console.log('OK', sandbox.ReportKit.version);
+          EOF
