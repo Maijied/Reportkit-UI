@@ -3,9 +3,8 @@
 Browser CSS + JS for **ReportKit** — CAS design tokens, page chrome, sync/async loaders, and first-class DataTables helpers.
 
 > Package: `@reportkit/ui` · ES5 / jQuery · DataTables optional  
-> Sibling engine: [`reportkit/core`](https://github.com/Maijied/Reportkit-Core)
-
----
+> Sibling engine: [`reportkit/core`](https://github.com/Maijied/Reportkit-Core)  
+> Repository: [Maijied/Reportkit-UI](https://github.com/Maijied/Reportkit-UI)
 
 ## Author
 
@@ -14,7 +13,63 @@ Browser CSS + JS for **ReportKit** — CAS design tokens, page chrome, sync/asyn
 
 Founder & Principal Engineer at [Lorapok Labs](https://lorapok.labs) · Senior Software Engineer @ [Shohoz Ltd](https://shohoz.com)
 
----
+## Architecture
+
+```mermaid
+graph TB
+  subgraph ui ["@reportkit/ui"]
+    CSS["css/reportkit.css"]
+    Compat["css/reportkit-compat.css"]
+    JS["js/reportkit.js"]
+  end
+  subgraph runtime ["Browser"]
+    Fonts["ReportKit.fonts"]
+    Sync["ReportKit.syncLoader"]
+    Async["ReportKit.asyncLoader"]
+    Table["ReportKit.table"]
+    Kpi["ReportKit.kpi"]
+  end
+  Host["Host Blade / HTML"]
+  CSS --> Host
+  Compat --> Host
+  JS --> Fonts
+  JS --> Sync
+  JS --> Async
+  JS --> Table
+  JS --> Kpi
+```
+
+Layout order (CAS):
+
+**page-head → filter → summary → KPI → panels → loaders → send → howto**
+
+## Features
+
+| CAS (design source) | ReportKit |
+|---------------------|-----------|
+| `--cas-green` `#0b7a4b` | `--rk-accent` |
+| `.sales-page-head` | `.rk-page-head` |
+| `.search-pan` | `.rk-filter-pan` (+ `.search-pan` alias) |
+| `.cas-filter-summary` | `.rk-filter-summary` |
+| `.sales-kpi-card` | `.rk-kpi-card` |
+| `.cas-table-scroll` | `.rk-table-x` / `.rk-panel` |
+| `.sales-tables-loading` | `.rk-sync-loading` |
+
+### JS surface
+
+| API | Purpose |
+|-----|---------|
+| `ReportKit.fonts.ensure()` | Inject Manrope/Sora |
+| `ReportKit.syncLoader.*` | Classic form overlay |
+| `ReportKit.asyncLoader.*` | Prepare progress overlay |
+| `ReportKit.table.mount()` | DataTables serverSide mount |
+| `ReportKit.table.toPreparedRows(api)` | Export current view — **no re-query** |
+| `ReportKit.kpi.apply()` | Fill KPI cards from summary JSON |
+
+## Requirements
+
+- Peer: **jQuery ≥ 1.10.0**
+- Optional peer: DataTables (`datatables.net`) for `ReportKit.table.mount`
 
 ## Install
 
@@ -24,6 +79,8 @@ npm install @reportkit/ui
 ```
 
 Until npm publish, use this repository directly (git subtree / raw copy).
+
+Published `files`: `css/`, `js/`, `docs/`, `LICENSE`, `AUTHORS.md`, `README.md`.
 
 ### HTML
 
@@ -49,31 +106,6 @@ var table = ReportKit.table.mount('#rkTable', {
   ]
 });
 ```
-
-## Layout order (CAS)
-
-**page-head → filter → summary → KPI → panels → loaders → send → howto**
-
-| CAS (design source) | ReportKit |
-|---------------------|-----------|
-| `--cas-green` `#0b7a4b` | `--rk-accent` |
-| `.sales-page-head` | `.rk-page-head` |
-| `.search-pan` | `.rk-filter-pan` (+ `.search-pan` alias) |
-| `.cas-filter-summary` | `.rk-filter-summary` |
-| `.sales-kpi-card` | `.rk-kpi-card` |
-| `.cas-table-scroll` | `.rk-table-x` / `.rk-panel` |
-| `.sales-tables-loading` | `.rk-sync-loading` |
-
-## JS surface
-
-| API | Purpose |
-|-----|---------|
-| `ReportKit.fonts.ensure()` | Inject Manrope/Sora |
-| `ReportKit.syncLoader.*` | Classic form overlay |
-| `ReportKit.asyncLoader.*` | Prepare progress overlay |
-| `ReportKit.table.mount()` | DataTables serverSide mount |
-| `ReportKit.table.toPreparedRows(api)` | Export current view — **no re-query** |
-| `ReportKit.kpi.apply()` | Fill KPI cards from summary JSON |
 
 Docs: [docs/CSS.md](docs/CSS.md) · [docs/JS.md](docs/JS.md)
 
