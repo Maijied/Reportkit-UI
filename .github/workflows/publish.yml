@@ -96,7 +96,6 @@ jobs:
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: https://registry.npmjs.org
 
       - name: Meta from tag
         id: meta
@@ -128,12 +127,6 @@ jobs:
           DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
         run: |
           set -euo pipefail
-          # Must NOT pass NODE_AUTH_TOKEN — npm would use the token and require OTP
-          # even when --provenance is set. OIDC uses the Actions id-token instead.
-          unset NODE_AUTH_TOKEN || true
-          if [ -n "${NPM_CONFIG_USERCONFIG:-}" ] && [ -f "$NPM_CONFIG_USERCONFIG" ]; then
-            sed -i '/^\/\/registry\.npmjs\.org\/:_authToken=/d' "$NPM_CONFIG_USERCONFIG" || true
-          fi
           npm publish --provenance --access public --tag "$DIST_TAG"
 
       - name: Publish to npm (token fallback)
@@ -144,9 +137,10 @@ jobs:
         run: |
           set -euo pipefail
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::OIDC publish failed. Add npm Trusted Publisher for Maijied/Reportkit-UI (workflow publish.yml), or set NPM_TOKEN with 2FA bypass enabled." >&2
+            echo "::error::OIDC publish failed. On npmjs.com add Trusted Publisher for Maijied/Reportkit-UI (workflow publish.yml), or set NPM_TOKEN with 2FA bypass enabled." >&2
             exit 1
           fi
+          printf '%s\n' "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" "always-auth=true" > "$HOME/.npmrc"
           npm publish --access public --tag "$DIST_TAG"
 
       - uses: softprops/action-gh-release@v2
