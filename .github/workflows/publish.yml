@@ -1,28 +1,153 @@
 name: Publish npm
 
+# Dynamic SemVer → npm. Default channel is beta (dist-tag: beta).
+# workflow_dispatch: bump package.json + push v* tag.
+# push v*: npm publish + GitHub Release + website ping.
+
 on:
+  workflow_dispatch:
+    inputs:
+      channel:
+        description: Release channel (npm dist-tag)
+        required: true
+        type: choice
+        options: [beta, rc, latest]
+        default: beta
+      bump:
+        description: Version bump
+        required: true
+        type: choice
+        options: [prerelease, patch, minor, major]
+        default: prerelease
+      dry_run:
+        description: Print next version only
+        type: boolean
+        default: false
   push:
     tags: ['v*']
 
 permissions:
-  contents: read
+  contents: write
   id-token: write
 
+concurrency:
+  group: publish-reportkit-ui
+  cancel-in-progress: false
+
 jobs:
-  publish:
+  plan-and-tag:
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.RELEASE_GITHUB_TOKEN || github.token }}
+
       - uses: actions/setup-node@v4
         with:
           node-version: 22
-          registry-url: 'https://registry.npmjs.org'
-      - name: Publish
+
+      - name: Resolve version
+        id: meta
         run: |
-          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
-            npm publish --access public
-          else
-            npm publish --provenance --access public || npm publish --access public
+          set -euo pipefail
+          chmod +x bin/next-version.sh
+          CHANNEL_IN="${{ inputs.channel }}"
+          case "$CHANNEL_IN" in
+            latest) SEMVER_CHANNEL=stable ;;
+            *) SEMVER_CHANNEL="$CHANNEL_IN" ;;
+          esac
+          LATEST="$(git tag -l 'v*' --sort=-v:refname | head -n1 || true)"
+          if [ -z "$LATEST" ]; then
+            LATEST="v$(node -p "require('./package.json').version")"
           fi
+          TAG="$(./bin/next-version.sh "$SEMVER_CHANNEL" "${{ inputs.bump }}" "$LATEST")"
+          echo "tag=$TAG" >> "$GITHUB_OUTPUT"
+          echo "version=${TAG#v}" >> "$GITHUB_OUTPUT"
+          echo "Resolved $LATEST → $TAG (npm tag $CHANNEL_IN)"
+
+      - name: Dry run
+        if: inputs.dry_run == true
+        run: echo "::notice::Would tag ${{ steps.meta.outputs.tag }}"
+
+      - name: Bump package.json and push tag
+        if: inputs.dry_run == false
+        env:
+          TAG: ${{ steps.meta.outputs.tag }}
+          VERSION: ${{ steps.meta.outputs.version }}
+        run: |
+          set -euo pipefail
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          node -e "const fs=require('fs'); const p=JSON.parse(fs.readFileSync('package.json','utf8')); p.version=process.env.VERSION; fs.writeFileSync('package.json', JSON.stringify(p,null,2)+'\n')"
+          git add package.json
+          git commit -m "chore(release): $TAG"
+          git push origin "HEAD:${{ github.ref_name }}"
+          git tag -a "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+
+  publish:
+    if: github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          registry-url: https://registry.npmjs.org
+
+      - name: Meta from tag
+        id: meta
+        run: |
+          TAG="${GITHUB_REF_NAME}"
+          VERSION="${TAG#v}"
+          case "$VERSION" in
+            *-beta.*) DIST_TAG=beta; PRERELEASE=true ;;
+            *-rc.*) DIST_TAG=rc; PRERELEASE=true ;;
+            *) DIST_TAG=latest; PRERELEASE=false ;;
+          esac
+          PKG="$(node -p "require('./package.json').version")"
+          if [ "$PKG" != "$VERSION" ]; then
+            echo "package.json ($PKG) != tag ($VERSION)" >&2
+            exit 1
+          fi
+          {
+            echo "tag=$TAG"
+            echo "version=$VERSION"
+            echo "dist_tag=$DIST_TAG"
+            echo "prerelease=$PRERELEASE"
+          } >> "$GITHUB_OUTPUT"
+          npm pack --dry-run
+
+      - name: Publish to npm
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
+        run: |
+          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+            npm publish --access public --tag "$DIST_TAG"
+          else
+            npm publish --provenance --access public --tag "$DIST_TAG" || npm publish --access public --tag "$DIST_TAG"
+          fi
+
+      - uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ steps.meta.outputs.tag }}
+          name: ReportKit UI ${{ steps.meta.outputs.tag }}
+          generate_release_notes: true
+          prerelease: ${{ steps.meta.outputs.prerelease == 'true' }}
+
+      - name: Ping website
+        env:
+          GH_TOKEN: ${{ secrets.RELEASE_GITHUB_TOKEN || github.token }}
+        run: |
+          PAYLOAD=$(jq -nc \
+            --arg p '@reportkit/ui' \
+            --arg v '${{ steps.meta.outputs.version }}' \
+            --arg c '${{ steps.meta.outputs.dist_tag }}' \
+            --arg t '${{ steps.meta.outputs.tag }}' \
+            '{package:$p,version:$v,channel:$c,tag:$t}')
+          gh api repos/Maijied/Reportkit-Website/dispatches --input - \
+            <<<"{\"event_type\":\"package-released\",\"client_payload\":$PAYLOAD}" || true
