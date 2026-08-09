@@ -1,6 +1,6 @@
 {
   "name": "@reportkit/ui",
-  "version": "0.1.1-beta.1",
+  "version": "0.1.1-beta.2",
   "description": "ReportKit browser UI — CAS design tokens (rk-*), sync/async loaders, DataTables mount helpers.",
   "license": "MIT",
   "author": {
