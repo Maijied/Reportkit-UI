@@ -7,11 +7,16 @@
 <p align="center"><strong>The browser layer for ReportKit — design tokens, page chrome, and DataTables helpers.</strong></p>
 
 <p align="center">
-  <a href="https://www.npmjs.com/package/@reportkit/ui"><img alt="npm version" src="https://img.shields.io/npm/v/@reportkit/ui?color=0b7a4b"></a>
-  <a href="https://www.npmjs.com/package/@reportkit/ui"><img alt="npm downloads" src="https://img.shields.io/npm/dt/@reportkit/ui?color=0b7a4b"></a>
-  <img alt="jQuery" src="https://img.shields.io/badge/peer-jQuery%20%E2%89%A5%201.10-0769ad">
-  <a href="https://github.com/Maijied/Reportkit-UI/actions/workflows/publish.yml"><img alt="CI" src="https://github.com/Maijied/Reportkit-UI/actions/workflows/publish.yml/badge.svg"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/npm/l/@reportkit/ui?color=0b7a4b"></a>
+  <img src="https://hits.sh/reportkit.lorapok.tech.svg?view=today-total&style=flat-square&label=visitors&color=0b7a4b&labelColor=08130f" alt="Visitor Count" />
+  <a href="https://www.npmjs.com/package/@reportkit/ui"><img src="https://img.shields.io/npm/v/@reportkit/ui?style=flat-square&color=0b7a4b&labelColor=08130f" alt="npm version" /></a>
+  <a href="https://www.npmjs.com/package/@reportkit/ui"><img src="https://img.shields.io/npm/dm/@reportkit/ui?style=flat-square&color=34c98a&labelColor=08130f" alt="npm downloads" /></a>
+  <img src="https://img.shields.io/badge/peer-jQuery%20%E2%89%A5%201.10-0769ad?style=flat-square&labelColor=08130f" alt="jQuery" />
+  <a href="https://github.com/Maijied/Reportkit-UI/actions/workflows/publish.yml"><img src="https://github.com/Maijied/Reportkit-UI/actions/workflows/publish.yml/badge.svg" alt="CI" /></a>
+  <a href="LICENSE"><img src="https://img.shields.io/npm/l/@reportkit/ui?style=flat-square&color=0b7a4b&labelColor=08130f" alt="License" /></a>
+</p>
+
+<p align="center">
+  <a href="https://reportkit.lorapok.tech"><img src="https://img.shields.io/badge/live-reportkit.lorapok.tech-0b7a4b?style=flat-square&labelColor=08130f" alt="Website" /></a>
 </p>
 
 <p align="center">
@@ -32,20 +37,20 @@
 ## Architecture
 
 ```mermaid
-graph TB
-  subgraph ui ["@reportkit/ui"]
-    CSS["css/reportkit.css"]
-    Compat["css/reportkit-compat.css"]
-    JS["js/reportkit.js"]
+flowchart TB
+  subgraph ui_pkg [reportkit-ui package]
+    CSS[reportkit.css]
+    Compat[reportkit-compat.css]
+    JS[reportkit.js]
   end
-  subgraph runtime ["Browser"]
-    Fonts["ReportKit.fonts"]
-    Sync["ReportKit.syncLoader"]
-    Async["ReportKit.asyncLoader"]
-    Table["ReportKit.table"]
-    Kpi["ReportKit.kpi"]
+  subgraph runtime [Browser runtime]
+    Fonts[ReportKit.fonts]
+    Sync[ReportKit.syncLoader]
+    Async[ReportKit.asyncLoader]
+    Table[ReportKit.table]
+    Kpi[ReportKit.kpi]
   end
-  Host["Host Blade / HTML"]
+  Host[Host Blade or HTML]
   CSS --> Host
   Compat --> Host
   JS --> Fonts
