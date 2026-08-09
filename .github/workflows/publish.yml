@@ -126,10 +126,15 @@ jobs:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
         run: |
-          if [ -n "${NODE_AUTH_TOKEN:-}" ]; then
+          set -euo pipefail
+          # Prefer npm Trusted Publishing (OIDC) — no OTP. Falls back to NPM_TOKEN.
+          if npm publish --provenance --access public --tag "$DIST_TAG"; then
+            echo "Published with trusted publishing (provenance)."
+          elif [ -n "${NODE_AUTH_TOKEN:-}" ]; then
             npm publish --access public --tag "$DIST_TAG"
           else
-            npm publish --provenance --access public --tag "$DIST_TAG" || npm publish --access public --tag "$DIST_TAG"
+            echo "Configure npm Trusted Publishers for Maijied/Reportkit-UI or set NPM_TOKEN with 2FA bypass." >&2
+            exit 1
           fi
 
       - uses: softprops/action-gh-release@v2
