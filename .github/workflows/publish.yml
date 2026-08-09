@@ -120,28 +120,28 @@ jobs:
           } >> "$GITHUB_OUTPUT"
           npm pack --dry-run
 
-      - name: Publish to npm (OIDC trusted publishing)
-        id: oidc_publish
-        continue-on-error: true
-        env:
-          DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
-        run: |
-          set -euo pipefail
-          npm publish --provenance --access public --tag "$DIST_TAG"
-
-      - name: Publish to npm (token fallback)
-        if: steps.oidc_publish.outcome == 'failure'
+      - name: Publish to npm (automation token)
+        id: token_publish
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
         run: |
           set -euo pipefail
           if [ -z "${NODE_AUTH_TOKEN:-}" ]; then
-            echo "::error::OIDC publish failed. On npmjs.com add Trusted Publisher for Maijied/Reportkit-UI (workflow publish.yml), or set NPM_TOKEN with 2FA bypass enabled." >&2
+            echo "No NPM_TOKEN secret — skipping token publish." >&2
             exit 1
           fi
-          printf '%s\n' "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" "always-auth=true" > "$HOME/.npmrc"
+          NPMRC="${NPM_CONFIG_USERCONFIG:-$HOME/.npmrc}"
+          printf '%s\n' "//registry.npmjs.org/:_authToken=${NODE_AUTH_TOKEN}" "always-auth=true" > "$NPMRC"
           npm publish --access public --tag "$DIST_TAG"
+
+      - name: Publish to npm (OIDC trusted publishing)
+        if: steps.token_publish.outcome == 'failure'
+        env:
+          DIST_TAG: ${{ steps.meta.outputs.dist_tag }}
+        run: |
+          set -euo pipefail
+          npm publish --provenance --access public --tag "$DIST_TAG"
 
       - uses: softprops/action-gh-release@v2
         with:
